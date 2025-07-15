@@ -110,6 +110,52 @@ result_df = pd.DataFrame({
                for name, val in zip(input_columns, optimal_mix)]
 })
 
+import matplotlib.pyplot as plt
+
+st.subheader("🥧 **Mix Design Pie Chart**")
+
+# Prepare data for pie chart
+labels = [name for name in input_columns if name != "Temperature"]
+values = [val for name, val in zip(input_columns, optimal_mix) if name != "Temperature"]
+
+# Define custom pastel colors
+custom_colors = [
+    '#FF9999','#66B3FF','#99FF99','#FFCC99',
+    '#C2C2F0','#FFB266','#FF6666','#99CC99','#66CCCC'
+]
+
+# Create pie chart
+fig, ax = plt.subplots(figsize=(7, 7))
+
+wedges, texts, autotexts = ax.pie(
+    values,
+    labels=None,  # we'll use legend
+    autopct='%1.1f%%',
+    startangle=140,
+    colors=custom_colors,
+    pctdistance=0.85
+)
+
+# Draw center circle for "donut" look
+centre_circle = plt.Circle((0,0),0.70,fc='white')
+fig.gca().add_artist(centre_circle)
+
+# Add legend outside
+ax.legend(
+    wedges,
+    labels,
+    title="Mix Components",
+    loc="center left",
+    bbox_to_anchor=(1, 0, 0.5, 1)
+)
+
+ax.set_title("Proportions of Mix Components (excluding Temperature)", fontsize=14)
+plt.tight_layout()
+
+# Display in Streamlit
+st.pyplot(fig)
+
+
 st.subheader("🔧 **Optimized Mix Design Proportions**")
 st.dataframe(result_df.style.format({"Amount": str}))
 
