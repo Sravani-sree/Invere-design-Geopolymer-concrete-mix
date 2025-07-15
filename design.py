@@ -100,5 +100,17 @@ if st.button('Run Inverse Design'):
     else:
         st.error('❌ Optimization failed. Try adjusting targets or check model.')
 
+import pandas as pd
+
+# Prepare DataFrame nicely
+result_df = pd.DataFrame({
+    'Component': input_columns,
+    'Amount': [f"{val:.2f} kg/m³" if "Molarity" not in name and "Temperature" not in name else
+               (f"{val:.2f} mol/L" if "Molarity" in name else f"{val:.2f} °C")
+               for name, val in zip(input_columns, optimal_mix)]
+})
+
+st.subheader("🔧 **Optimized Mix Design Proportions**")
+st.dataframe(result_df.style.format({"Amount": str}))
 
 
