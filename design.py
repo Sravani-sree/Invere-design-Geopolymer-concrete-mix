@@ -1,11 +1,12 @@
-# app.py
 import streamlit as st
 import numpy as np
+import pandas as pd
 import pickle
 from scipy.optimize import minimize
+import matplotlib.pyplot as plt
 
 # ------------------------------
-# Load trained model
+# Load the trained model
 # ------------------------------
 with open('xgb_inverse_model.pkl', 'rb') as f:
     model = pickle.load(f)
@@ -71,92 +72,94 @@ def inverse_design(target_values, model, bounds):
 # ------------------------------
 # Streamlit UI
 # ------------------------------
+st.set_page_config(page_title="Geopolymer Concrete Inverse Design", layout="centered")
+
 st.title('🧪 Geopolymer Concrete Inverse Design App')
 st.markdown("""
 Enter your **desired target properties** (compressive strength, slump flow, T500) 
 and get **recommended mix design proportions**!
 """)
 
-# User inputs
-cs_target = st.number_input('Desired Compressive Strength (MPa)', 20.0, 60.0, 35.0)
-sf_target = st.number_input('Desired Slump Flow (mm)', 600.0, 800.0, 700.0)
-t500_target = st.number_input('Desired T500 Flow Time (s)', 2.0, 5.0, 3.5)
+# User Inputs
+cs_target = st.number_input('🎯 Desired Compressive Strength (MPa)', 20.0, 60.0, 35.0)
+sf_target = st.number_input('🎯 Desired Slump Flow (mm)', 600.0, 800.0, 700.0)
+t500_target = st.number_input('🎯 Desired T500 Flow Time (s)', 2.0, 5.0, 3.5)
 
-if st.button('Run Inverse Design'):
+# Run button
+if st.button('🚀 Run Inverse Design'):
     target_array = np.array([cs_target, sf_target, t500_target])
     optimal_mix = inverse_design(target_array, model, bounds)
     
     if optimal_mix is not None:
-        st.success('✅ Optimized Mix Design Found!')
-        mix_df = {col: [val] for col, val in zip(input_columns, optimal_mix)}
-        st.table(mix_df)
+        st.success('✅ Optimization Successful! Here is your recommended mix design:')
 
-        # Predict properties for this mix
+        # ------------------------------
+        # BULLET LIST of Results
+        # ------------------------------
+        st.subheader("🔧 Optimized Mix Design Proportions")
+        for name, val in zip(input_columns, optimal_mix):
+            if "Molarity" in name:
+                st.write(f"- **{name}**: {val:.2f} mol/L")
+            elif "Temperature" in name:
+                st.write(f"- **{name}**: {val:.2f} °C")
+            else:
+                st.write(f"- **{name}**: {val:.2f} kg/m³")
+
+        # ------------------------------
+        # Predicted Properties
+        # ------------------------------
         predicted_properties = model.predict(optimal_mix.reshape(1, -1))[0]
-        st.subheader('Predicted Properties for Suggested Mix')
-        st.write(f"- Compressive Strength: {predicted_properties[0]:.2f} MPa")
-        st.write(f"- Slump Flow: {predicted_properties[1]:.2f} mm")
-        st.write(f"- T500 Flow Time: {predicted_properties[2]:.2f} s")
+        st.subheader('📊 Predicted Properties for Suggested Mix')
+        st.write(f"- Compressive Strength: **{predicted_properties[0]:.2f} MPa**")
+        st.write(f"- Slump Flow: **{predicted_properties[1]:.2f} mm**")
+        st.write(f"- T500 Flow Time: **{predicted_properties[2]:.2f} s**")
+
+        # ------------------------------
+        # DataFrame Table
+        # ------------------------------
+        result_df = pd.DataFrame({
+            'Component': input_columns,
+            'Amount': [
+                f"{val:.2f} kg/m³" if "Molarity" not in name and "Temperature" not in name else
+                (f"{val:.2f} mol/L" if "Molarity" in name else f"{val:.2f} °C")
+                for name, val in zip(input_columns, optimal_mix)
+            ]
+        })
+        st.subheader("📋 Tabular View of Mix Design")
+        st.dataframe(result_df)
+
+        # ------------------------------
+        # PIE CHART
+        # ------------------------------
+        st.subheader("🥧 Mix Design Pie Chart")
+        labels = [name for name in input_columns if name != "Temperature"]
+        values = [val for name, val in zip(input_columns, optimal_mix) if name != "Temperature"]
+        custom_colors = [
+            '#FF9999','#66B3FF','#99FF99','#FFCC99',
+            '#C2C2F0','#FFB266','#FF6666','#99CC99','#66CCCC'
+        ]
+        fig, ax = plt.subplots(figsize=(7, 7))
+        wedges, texts, autotexts = ax.pie(
+            values,
+            labels=None,
+            autopct='%1.1f%%',
+            startangle=140,
+            colors=custom_colors,
+            pctdistance=0.85
+        )
+        centre_circle = plt.Circle((0,0),0.70,fc='white')
+        fig.gca().add_artist(centre_circle)
+        ax.legend(
+            wedges,
+            labels,
+            title="Mix Components",
+            loc="center left",
+            bbox_to_anchor=(1, 0, 0.5, 1)
+        )
+        ax.set_title("Proportions of Mix Components (excluding Temperature)", fontsize=14)
+        plt.tight_layout()
+        st.pyplot(fig)
+
     else:
         st.error('❌ Optimization failed. Try adjusting targets or check model.')
-
-import pandas as pd
-
-# Prepare DataFrame nicely
-result_df = pd.DataFrame({
-    'Component': input_columns,
-    'Amount': [f"{val:.2f} kg/m³" if "Molarity" not in name and "Temperature" not in name else
-               (f"{val:.2f} mol/L" if "Molarity" in name else f"{val:.2f} °C")
-               for name, val in zip(input_columns, optimal_mix)]
-})
-
-import matplotlib.pyplot as plt
-
-st.subheader("🥧 **Mix Design Pie Chart**")
-
-# Prepare data for pie chart
-labels = [name for name in input_columns if name != "Temperature"]
-values = [val for name, val in zip(input_columns, optimal_mix) if name != "Temperature"]
-
-# Define custom pastel colors
-custom_colors = [
-    '#FF9999','#66B3FF','#99FF99','#FFCC99',
-    '#C2C2F0','#FFB266','#FF6666','#99CC99','#66CCCC'
-]
-
-# Create pie chart
-fig, ax = plt.subplots(figsize=(7, 7))
-
-wedges, texts, autotexts = ax.pie(
-    values,
-    labels=None,  # we'll use legend
-    autopct='%1.1f%%',
-    startangle=140,
-    colors=custom_colors,
-    pctdistance=0.85
-)
-
-# Draw center circle for "donut" look
-centre_circle = plt.Circle((0,0),0.70,fc='white')
-fig.gca().add_artist(centre_circle)
-
-# Add legend outside
-ax.legend(
-    wedges,
-    labels,
-    title="Mix Components",
-    loc="center left",
-    bbox_to_anchor=(1, 0, 0.5, 1)
-)
-
-ax.set_title("Proportions of Mix Components (excluding Temperature)", fontsize=14)
-plt.tight_layout()
-
-# Display in Streamlit
-st.pyplot(fig)
-
-
-st.subheader("🔧 **Optimized Mix Design Proportions**")
-st.dataframe(result_df.style.format({"Amount": str}))
-
 
