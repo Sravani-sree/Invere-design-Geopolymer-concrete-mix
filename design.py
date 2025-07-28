@@ -1,165 +1,76 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-import pickle
-from scipy.optimize import minimize
+import joblib
+from scipy.optimize import differential_evolution
 import matplotlib.pyplot as plt
 
-# ------------------------------
-# Load the trained model
-# ------------------------------
-with open('xgb_inverse_model.pkl', 'rb') as f:
-    model = pickle.load(f)
+# Load model and scalers
+model = joblib.load("rf_model.pkl")
+input_scaler = joblib.load("input_scaler.pkl")
+output_scaler = joblib.load("output_scaler.pkl")
 
-# ------------------------------
-# Define input columns
-# ------------------------------
-input_columns = [
-    'Fly Ash',
-    'GGBS',
-    'NaOH',
-    'Molarity',
-    'Silicate Solution',
-    'Sand',
-    'Coarse Aggregate',
-    'Water',
-    'Spz',
-    'Temperature'
-]
+# Target input section
+st.title("🧪 Inverse Design of SCGPC Concrete Mix")
+st.markdown("Enter desired target properties:")
 
-# ------------------------------
-# Define realistic bounds
-# ------------------------------
+cs_target = st.number_input("Compressive Strength (MPa)", min_value=10.0, max_value=80.0, value=40.0)
+sf_target = st.number_input("Slump Flow (mm)", min_value=400.0, max_value=800.0, value=700.0)
+t500_target = st.number_input("T500 Time (sec)", min_value=1.0, max_value=20.0, value=5.0)
+
+target_values = np.array([[cs_target, sf_target, t500_target]])
+scaled_target = output_scaler.transform(target_values)
+
+# Bounds for input mix proportions
 bounds = [
-    (300, 600),     # Fly Ash
-    (50, 300),      # GGBS
-    (5, 50),        # NaOH
-    (6, 16),        # Molarity
-    (50, 250),      # Silicate Solution
-    (600, 900),     # Sand
-    (700, 1200),    # Coarse Aggregate
-    (140, 220),     # Water
-    (0, 10),        # Spz
-    (20, 80)        # Temperature
+    (100, 600),   # Fly Ash
+    (50, 250),    # GGBS
+    (5, 50),      # NaOH
+    (8, 16),      # Molarity
+    (50, 300),    # Silicate Solution
+    (600, 800),   # Sand
+    (800, 1200),  # Coarse Agg
+    (120, 220),   # Water
+    (0, 10),      # SP
+    (20, 80),     # Temperature
 ]
 
-# ------------------------------
-# Define objective function
-# ------------------------------
-def objective_function(inputs, target_values, model):
-    inputs = np.array(inputs).reshape(1, -1)
-    prediction = model.predict(inputs)[0]
-    error = np.sum((prediction - target_values) ** 2)
+input_labels = ['Fly Ash', 'GGBS', 'NaOH', 'Molarity', 'Silicate Solution', 'Sand',
+                'Coarse Agg', 'Water', 'SP', 'Temperature']
+
+# Define fitness function
+def fitness(x):
+    x_scaled = input_scaler.transform([x])
+    y_pred_scaled = model.predict(x_scaled)
+    error = np.mean((y_pred_scaled - scaled_target)**2)
     return error
 
-# ------------------------------
-# Inverse Design Optimizer
-# ------------------------------
-def inverse_design(target_values, model, bounds):
-    initial_guess = np.array([(low + high) / 2 for low, high in bounds])
-    result = minimize(
-        objective_function,
-        initial_guess,
-        args=(target_values, model),
-        bounds=bounds,
-        method='L-BFGS-B'
-    )
-    if result.success:
-        return result.x
-    else:
-        return None
+if st.button("🔍 Optimize Mix Design"):
+    result = differential_evolution(fitness, bounds, seed=42, strategy='best1bin', maxiter=1000)
+    optimal_mix = result.x
+    predicted_scaled = model.predict(input_scaler.transform([optimal_mix]))
+    predicted_output = output_scaler.inverse_transform(predicted_scaled)[0]
 
-# ------------------------------
-# Streamlit UI
-# ------------------------------
-st.set_page_config(page_title="Geopolymer Concrete Inverse Design", layout="centered")
+    mix_df = pd.DataFrame({
+        "Component": input_labels,
+        "Proportion": np.round(optimal_mix, 2)
+    })
 
-st.title('🧪 Geopolymer Concrete Inverse Design App')
-st.markdown("""
-Enter your **desired target properties** (compressive strength, slump flow, T500) 
-and get **recommended mix design proportions**!
-""")
+    # Display result table
+    st.subheader("📊 Suggested Mix Design Proportions")
+    st.dataframe(mix_df.set_index("Component"))
 
-# User Inputs
-cs_target = st.number_input('🎯 Desired Compressive Strength (MPa)', 20.0, 60.0, 35.0)
-sf_target = st.number_input('🎯 Desired Slump Flow (mm)', 600.0, 800.0, 700.0)
-t500_target = st.number_input('🎯 Desired T500 Flow Time (s)', 2.0, 5.0, 3.5)
+    # Pie chart
+    st.subheader("🔎 Mix Proportion Visualization")
+    fig, ax = plt.subplots()
+    ax.pie(mix_df["Proportion"], labels=mix_df["Component"], autopct='%1.1f%%', startangle=140)
+    ax.axis("equal")
+    st.pyplot(fig)
 
-# Run button
-if st.button('🚀 Run Inverse Design'):
-    target_array = np.array([cs_target, sf_target, t500_target])
-    optimal_mix = inverse_design(target_array, model, bounds)
-    
-    if optimal_mix is not None:
-        st.success('✅ Optimization Successful! Here is your recommended mix design:')
-
-        # ------------------------------
-        # BULLET LIST of Results
-        # ------------------------------
-        st.subheader("🔧 Optimized Mix Design Proportions")
-        for name, val in zip(input_columns, optimal_mix):
-            if "Molarity" in name:
-                st.write(f"- **{name}**: {val:.2f} mol/L")
-            elif "Temperature" in name:
-                st.write(f"- **{name}**: {val:.2f} °C")
-            else:
-                st.write(f"- **{name}**: {val:.2f} kg/m³")
-
-        # ------------------------------
-        # Predicted Properties
-        # ------------------------------
-        predicted_properties = model.predict(optimal_mix.reshape(1, -1))[0]
-        st.subheader('📊 Predicted Properties for Suggested Mix')
-        st.write(f"- Compressive Strength: **{predicted_properties[0]:.2f} MPa**")
-        st.write(f"- Slump Flow: **{predicted_properties[1]:.2f} mm**")
-        st.write(f"- T500 Flow Time: **{predicted_properties[2]:.2f} s**")
-
-        # ------------------------------
-        # DataFrame Table
-        # ------------------------------
-        result_df = pd.DataFrame({
-            'Component': input_columns,
-            'Amount': [
-                f"{val:.2f} kg/m³" if "Molarity" not in name and "Temperature" not in name else
-                (f"{val:.2f} mol/L" if "Molarity" in name else f"{val:.2f} °C")
-                for name, val in zip(input_columns, optimal_mix)
-            ]
-        })
-        st.subheader("📋 Tabular View of Mix Design")
-        st.dataframe(result_df)
-
-        # ------------------------------
-        # PIE CHART
-        # ------------------------------
-        st.subheader("🥧 Mix Design Pie Chart")
-        labels = [name for name in input_columns if name != "Temperature"]
-        values = [val for name, val in zip(input_columns, optimal_mix) if name != "Temperature"]
-        custom_colors = [
-            '#FF9999','#66B3FF','#99FF99','#FFCC99',
-            '#C2C2F0','#FFB266','#FF6666','#99CC99','#66CCCC'
-        ]
-        fig, ax = plt.subplots(figsize=(7, 7))
-        wedges, texts, autotexts = ax.pie(
-            values,
-            labels=None,
-            autopct='%1.1f%%',
-            startangle=140,
-            colors=custom_colors,
-            pctdistance=0.85
-        )
-        centre_circle = plt.Circle((0,0),0.70,fc='white')
-        fig.gca().add_artist(centre_circle)
-        ax.legend(
-            wedges,
-            labels,
-            title="Mix Components",
-            loc="center left",
-            bbox_to_anchor=(1, 0, 0.5, 1)
-        )
-        ax.set_title("Proportions of Mix Components (excluding Temperature)", fontsize=14)
-        plt.tight_layout()
-        st.pyplot(fig)
-
-    else:
-        st.error('❌ Optimization failed. Try adjusting targets or check model.')
-
+    # Predicted outputs
+    st.subheader("📈 Model-Predicted Properties for Optimized Mix")
+    st.markdown(f"""
+    - **C Strength**: {predicted_output[0]:.2f} MPa  
+    - **S Flow**:     {predicted_output[1]:.2f} mm  
+    - **T 500**:      {predicted_output[2]:.2f} sec
+    """)
