@@ -23,16 +23,16 @@ scaled_target = output_scaler.transform(target_values)
 
 # Bounds for input mix proportions
 bounds = [
-    (100, 600),   # Fly Ash
-    (50, 250),    # GGBS
-    (5, 50),      # NaOH
-    (8, 16),      # Molarity
-    (50, 300),    # Silicate Solution
-    (600, 800),   # Sand
-    (800, 1200),  # Coarse Agg
-    (120, 220),   # Water
-    (0, 10),      # SP
-    (20, 80),     # Temperature
+    (200, 450),    # Fly Ash
+    (50, 200),     # GGBS
+    (5, 25),       # NaOH
+    (8, 16),       # Molarity
+    (80, 300),     # Sodium Silicate
+    (600, 900),    # Sand
+    (800, 1100),   # Coarse Aggregate
+    (140, 220),    # Water
+    (0.5, 3.0),    # Superplasticizer (%)
+    (25, 80)       # Temperature
 ]
 
 input_labels = ['Fly Ash', 'GGBS', 'NaOH', 'Molarity', 'Silicate Solution', 'Sand',
