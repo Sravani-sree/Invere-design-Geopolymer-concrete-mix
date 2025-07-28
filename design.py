@@ -5,15 +5,16 @@ import joblib
 from scipy.optimize import differential_evolution
 import matplotlib.pyplot as plt
 
-# Load model and scalers
+# Load trained model and scalers
 model = joblib.load("rf_model.pkl")
 input_scaler = joblib.load("input_scaler.pkl")
 output_scaler = joblib.load("output_scaler.pkl")
 
-# Target input section
+st.set_page_config(page_title="SCGPC Inverse Design", layout="wide")
 st.title("🧪 Inverse Design of SCGPC Concrete Mix")
-st.markdown("Enter desired target properties:")
+st.markdown("Enter the desired **target properties** below:")
 
+# Target properties input
 cs_target = st.number_input("Compressive Strength (MPa)", min_value=10.0, max_value=80.0, value=40.0)
 sf_target = st.number_input("Slump Flow (mm)", min_value=400.0, max_value=800.0, value=700.0)
 t500_target = st.number_input("T500 Time (sec)", min_value=1.0, max_value=20.0, value=5.0)
@@ -21,24 +22,24 @@ t500_target = st.number_input("T500 Time (sec)", min_value=1.0, max_value=20.0, 
 target_values = np.array([[cs_target, sf_target, t500_target]])
 scaled_target = output_scaler.transform(target_values)
 
-# Bounds for input mix proportions
+# Define realistic bounds for mix components
 bounds = [
-    (200, 450),    # Fly Ash
-    (50, 200),     # GGBS
-    (5, 25),       # NaOH
-    (8, 16),       # Molarity
-    (80, 300),     # Sodium Silicate
-    (600, 900),    # Sand
-    (800, 1100),   # Coarse Aggregate
-    (140, 220),    # Water
-    (0.5, 3.0),    # Superplasticizer (%)
-    (25, 80)       # Temperature
+    (100, 600),   # Fly Ash
+    (50, 300),    # GGBS
+    (5, 40),      # NaOH
+    (8, 16),      # Molarity
+    (50, 300),    # Silicate Solution
+    (600, 900),   # Sand
+    (800, 1200),  # Coarse Aggregate
+    (120, 220),   # Water
+    (0.1, 5.0),   # Superplasticizer
+    (20, 80),     # Temperature
 ]
 
 input_labels = ['Fly Ash', 'GGBS', 'NaOH', 'Molarity', 'Silicate Solution', 'Sand',
                 'Coarse Agg', 'Water', 'SP', 'Temperature']
 
-# Define fitness function
+# Fitness function
 def fitness(x):
     x_scaled = input_scaler.transform([x])
     y_pred_scaled = model.predict(x_scaled)
@@ -56,21 +57,41 @@ if st.button("🔍 Optimize Mix Design"):
         "Proportion": np.round(optimal_mix, 2)
     })
 
-    # Display result table
+    # 📊 Mix proportions table
     st.subheader("📊 Suggested Mix Design Proportions")
     st.dataframe(mix_df.set_index("Component"))
 
-    # Pie chart
-    st.subheader("🔎 Mix Proportion Visualization")
-    fig, ax = plt.subplots()
-    ax.pie(mix_df["Proportion"], labels=mix_df["Component"], autopct='%1.1f%%', startangle=140)
-    ax.axis("equal")
-    st.pyplot(fig)
-
-    # Predicted outputs
+    # 📈 Predicted vs Target comparison
     st.subheader("📈 Model-Predicted Properties for Optimized Mix")
-    st.markdown(f"""
-    - **C Strength**: {predicted_output[0]:.2f} MPa  
-    - **S Flow**:     {predicted_output[1]:.2f} mm  
-    - **T 500**:      {predicted_output[2]:.2f} sec
-    """)
+    col1, col2, col3 = st.columns(3)
+    col1.metric("C Strength (MPa)", f"{predicted_output[0]:.2f}", f"{predicted_output[0] - cs_target:+.2f}")
+    col2.metric("S Flow (mm)", f"{predicted_output[1]:.2f}", f"{predicted_output[1] - sf_target:+.2f}")
+    col3.metric("T500 (sec)", f"{predicted_output[2]:.2f}", f"{predicted_output[2] - t500_target:+.2f}")
+
+    # 📊 Bar chart: Target vs Predicted
+    st.subheader("📉 Target vs Predicted Properties")
+    targets = [cs_target, sf_target, t500_target]
+    predicted = predicted_output
+    labels = ["Compressive Strength", "Slump Flow", "T500 Time"]
+    x = np.arange(len(labels))
+    width = 0.35
+
+    fig1, ax1 = plt.subplots()
+    ax1.bar(x - width/2, targets, width, label='Target', color='skyblue')
+    ax1.bar(x + width/2, predicted, width, label='Predicted', color='lightgreen')
+    ax1.set_ylabel("Value")
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(labels, rotation=15)
+    ax1.set_title("Target vs Predicted")
+    ax1.legend()
+    for i in range(len(x)):
+        ax1.text(i - width/2, targets[i]+1, f"{targets[i]:.1f}", ha='center', fontsize=8)
+        ax1.text(i + width/2, predicted[i]+1, f"{predicted[i]:.1f}", ha='center', fontsize=8)
+    st.pyplot(fig1)
+
+    # 📌 Pie chart: Mix composition
+    st.subheader("🧯 Mix Proportion Breakdown (Pie Chart)")
+    fig2, ax2 = plt.subplots()
+    ax2.pie(mix_df["Proportion"], labels=mix_df["Component"], autopct='%1.1f%%', startangle=140)
+    ax2.axis("equal")
+    st.pyplot(fig2)
