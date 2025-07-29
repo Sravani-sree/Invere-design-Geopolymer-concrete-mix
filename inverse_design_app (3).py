@@ -5,7 +5,7 @@ import joblib
 import plotly.graph_objects as go
 
 # Load the model
-model = joblib.load("good_model.pkl")
+model = joblib.load("best_model.pkl")
 
 # App title
 st.title("Inverse Design of SCGPC Mix Using XGBoost")
