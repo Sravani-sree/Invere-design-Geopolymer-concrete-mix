@@ -34,7 +34,19 @@ try:
 except AttributeError:
     x0 = np.ones(input_scaler.n_features_in_) * 100  # Fallback
 
-bounds = [(0.1, 1000)] * len(x0)
+bounds = [
+    (300, 500),     # Fly Ash
+    (50, 250),      # GGBS
+    (10, 60),       # NaOH
+    (8, 16),        # Molarity
+    (100, 250),     # Silicate Soln
+    (600, 900),     # Sand
+    (800, 1100),    # Coarse Agg
+    (150, 250),     # Water
+    (1, 5),         # SP
+    (25, 90)        # Temp
+]
+
 
 if st.button("Run Inverse Design"):
     result = minimize(objective, x0, bounds=bounds, method='L-BFGS-B')
