@@ -1,45 +1,38 @@
 import streamlit as st
-import numpy as np
 import pandas as pd
 import joblib
-import plotly.graph_objects as go
 
-# Load the model
+# Load the trained model
 model = joblib.load("best_model.pkl")
 
-# App title
-st.title("Inverse Design of SCGPC Mix Using XGBoost")
+st.title("Inverse Design of Self-Compacting Geopolymer Concrete (SCGPC)")
 
-st.markdown("### Enter Target Properties:")
-cs = st.number_input("Compressive Strength (CS28) [MPa]", min_value=0.0, step=1.0, format="%.2f")
-sf = st.number_input("Slump Flow (SF) [mm]", min_value=0.0, step=1.0, format="%.2f")
-t500 = st.number_input("T500 Flow Time [s]", min_value=0.0, step=0.1, format="%.2f")
+st.markdown("""
+This tool predicts **raw material proportions** based on desired concrete properties:
+- **Compressive Strength** (C Strength)
+- **Slump Flow** (S flow)
+- **T500 Flow Time** (T 500)
+""")
 
-# Predict button
-if st.button("Predict Mix Design"):
+# Input form for target values
+with st.form("inverse_form"):
+    c_strength = st.number_input("Target Compressive Strength (MPa)", min_value=0.0, step=0.1)
+    s_flow = st.number_input("Target Slump Flow (mm)", min_value=0.0, step=1.0)
+    t_500 = st.number_input("Target T500 Flow Time (s)", min_value=0.0, step=0.1)
+    submitted = st.form_submit_button("Predict Mix Design")
+
+if submitted:
+    input_df = pd.DataFrame([[c_strength, s_flow, t_500]], columns=["C Strength", "S flow", "T 500"])
     try:
-        input_features = np.array([[cs, sf, t500]])
-        prediction = model.predict(input_features)[0]
-
-        mix_labels = [
-            "Fly Ash", "GGBS", "NaOH", "Molarity",
-            "Silicate Solution", "Sand", "Coarse Aggregate",
-            "Water", "Superplasticizer", "Temperature"
+        prediction = model.predict(input_df)[0]
+        mix_columns = [
+            "Fly Ash", "GGBS", "NaOH", "Molarity", "Silicate solution",
+            "sand", "coarse aggregates", "water", "Spz", "Temperature"
         ]
-        df_result = pd.DataFrame([prediction], columns=mix_labels)
+        result_df = pd.DataFrame([prediction], columns=mix_columns)
 
         st.success("Predicted Mix Proportions:")
-        st.dataframe(df_result.style.format(precision=2), use_container_width=True)
-
-        # Donut chart
-        fig = go.Figure(data=[go.Pie(
-            labels=mix_labels,
-            values=prediction,
-            hole=0.4,
-            textinfo='label+percent'
-        )])
-        fig.update_layout(title="Mix Composition Breakdown")
-        st.plotly_chart(fig, use_container_width=True)
+        st.dataframe(result_df.T.rename(columns={0: "Quantity"}))
 
     except Exception as e:
         st.error(f"Prediction failed: {e}")
