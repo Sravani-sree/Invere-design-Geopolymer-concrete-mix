@@ -6,7 +6,7 @@ from scipy.optimize import differential_evolution
 # --------------------------
 # Load trained model & scalers
 # --------------------------
-model = joblib.load("model.pkl")
+model = joblib.load("scgpc_model_bundle.pkl")
 input_scaler = joblib.load("input_scaler.pkl")
 output_scaler = joblib.load("output_scaler.pkl")
 
