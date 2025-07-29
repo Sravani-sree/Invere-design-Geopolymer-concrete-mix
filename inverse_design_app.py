@@ -34,6 +34,9 @@ try:
 except AttributeError:
     x0 = np.ones(input_scaler.n_features_in_) * 100  # Fallback
 
+from scipy.optimize import differential_evolution
+
+# Define realistic bounds
 bounds = [
     (300, 500),     # Fly Ash
     (50, 250),      # GGBS
@@ -47,6 +50,17 @@ bounds = [
     (25, 90)        # Temp
 ]
 
+# Define loss function
+def loss_fn(x):
+    x_scaled = input_scaler.transform([x])
+    y_pred_scaled = model.predict(x_scaled)
+    y_pred = output_scaler.inverse_transform(y_pred_scaled)
+    loss = np.sum((y_pred - target) ** 2)
+    return loss
+
+
+
+
 
 if st.button("Run Inverse Design"):
     result = minimize(objective, x0, bounds=bounds, method='L-BFGS-B')
@@ -57,4 +71,10 @@ if st.button("Run Inverse Design"):
         st.success("Optimized Mix Design Found!")
         st.dataframe(output_df.style.format("{:.2f}"))
     else:
+
         st.error("Optimization failed.")
+# Use differential evolution instead of minimize
+result = differential_evolution(loss_fn, bounds, strategy='best1bin', maxiter=200, popsize=20, tol=1e-4)
+
+# Final optimized input
+suggested_mix = result.x
