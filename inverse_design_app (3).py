@@ -55,14 +55,7 @@ cs = st.number_input("Compressive Strength (MPa)", min_value=10.0, max_value=100
 sf = st.number_input("Slump Flow (mm)", min_value=400.0, max_value=800.0, value=650.0)
 t500 = st.number_input("Flow Time (T500 sec)", min_value=1.0, max_value=10.0, value=2.5)
 
-if st.button("Suggest Mix Design"):
-    with st.spinner("Running optimization..."):
-        optimized_mix, predicted_props = inverse_design([cs, sf, t500], bounds)
 
-    st.subheader("🧱 Suggested Mix Proportions:")
-    for name, val in zip(feature_names, optimized_mix):
-        st.write(f"**{name}:** {val:.2f}")
-        
 if st.button("Suggest Mix Design"):
     with st.spinner("Running optimization..."):
         # Clip the unrealistic inputs
