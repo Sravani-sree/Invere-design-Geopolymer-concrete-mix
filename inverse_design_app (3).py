@@ -3,16 +3,13 @@ import numpy as np
 import joblib
 from scipy.optimize import differential_evolution
 
-# --------------------------
-# Load trained model & scalers
-# --------------------------
-model = joblib.load("scgpc_model_bundle.pkl")
-input_scaler = joblib.load("input_scaler.pkl")
-output_scaler = joblib.load("output_scaler.pkl")
 
-# --------------------------
-# Feature Names & Bounds
-# --------------------------
+# Load the bundled model, input scaler, and output scaler
+bundle = joblib.load("scgpc_model_bundle.pkl")
+model = bundle["model"]
+input_scaler = bundle["input_scaler"]
+output_scaler = bundle["output_scaler"]
+
 feature_names = [
     "Fly Ash", "GGBS", "NaOH", "Molarity", "Silicate Solution",
     "Sand", "Coarse Agg", "Water", "SP", "Temperature"
