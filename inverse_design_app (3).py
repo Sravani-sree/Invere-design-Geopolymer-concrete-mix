@@ -3,13 +3,13 @@ import numpy as np
 import joblib
 from scipy.optimize import differential_evolution
 
-
-# Load the bundled model, input scaler, and output scaler
+# Load model and scalers
 bundle = joblib.load("scgpc_model_bundle.pkl")
 model = bundle["model"]
 input_scaler = bundle["input_scaler"]
 output_scaler = bundle["output_scaler"]
 
+# Feature names and bounds
 feature_names = [
     "Fly Ash", "GGBS", "NaOH", "Molarity", "Silicate Solution",
     "Sand", "Coarse Agg", "Water", "SP", "Temperature"
@@ -28,9 +28,7 @@ bounds = [
     (20, 80)      # Temperature
 ]
 
-# --------------------------
 # Inverse Design Function
-# --------------------------
 def inverse_design(target_output, bounds, max_iter=100):
     scaled_target = output_scaler.transform([target_output])[0]
 
@@ -48,20 +46,18 @@ def inverse_design(target_output, bounds, max_iter=100):
     predicted_output = output_scaler.inverse_transform(scaled_output)[0]
     return optimized_input.flatten(), predicted_output
 
-# --------------------------
 # Streamlit UI
-# --------------------------
 st.set_page_config(page_title="SCGPC Inverse Design", layout="centered")
 st.title("🧪 Inverse Design of Self-Compacting Geopolymer Concrete Mix")
 
 st.markdown("### 🎯 Enter Desired Target Properties:")
-cs28 = st.number_input("Compressive Strength (MPa)", min_value=10.0, max_value=100.0, value=45.0)
+cs = st.number_input("Compressive Strength (MPa)", min_value=10.0, max_value=100.0, value=45.0)
 sf = st.number_input("Slump Flow (mm)", min_value=400.0, max_value=800.0, value=650.0)
 t500 = st.number_input("Flow Time (T500 sec)", min_value=1.0, max_value=10.0, value=2.5)
 
 if st.button("Suggest Mix Design"):
     with st.spinner("Running optimization..."):
-        optimized_mix, predicted_props = inverse_design([cs28, sf, t500], bounds)
+        optimized_mix, predicted_props = inverse_design([cs, sf, t500], bounds)
 
     st.subheader("🧱 Suggested Mix Proportions:")
     for name, val in zip(feature_names, optimized_mix):
