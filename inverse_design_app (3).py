@@ -5,7 +5,7 @@ import joblib
 import plotly.graph_objects as go
 
 # Load your trained model
-model = joblib.load("best_model.pkl")
+model = joblib.load("good_model.pkl")
 
 st.title("Inverse Design of Self-Compacting Geopolymer Concrete Mix")
 
