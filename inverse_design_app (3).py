@@ -62,8 +62,22 @@ if st.button("Suggest Mix Design"):
     st.subheader("🧱 Suggested Mix Proportions:")
     for name, val in zip(feature_names, optimized_mix):
         st.write(f"**{name}:** {val:.2f}")
+        
+if st.button("Suggest Mix Design"):
+    with st.spinner("Running optimization..."):
+        # Clip the unrealistic inputs
+        clipped_cs = np.clip(cs, 20.0, 80.0)
+        clipped_sf = np.clip(sf, 400.0, 800.0)
+        clipped_t500 = np.clip(t500, 1.0, 10.0)
+
+        optimized_mix, predicted_props = inverse_design([clipped_cs, clipped_sf, clipped_t500], bounds)
+
+    st.subheader("🧱 Suggested Mix Proportions:")
+    for name, val in zip(feature_names, optimized_mix):
+        st.write(f"**{name}:** {val:.2f}")
 
     st.subheader("📈 Predicted Properties:")
     st.write(f"**CS28:** {predicted_props[0]:.2f} MPa")
     st.write(f"**Slump Flow:** {predicted_props[1]:.2f} mm")
     st.write(f"**T500:** {predicted_props[2]:.2f} sec")
+
