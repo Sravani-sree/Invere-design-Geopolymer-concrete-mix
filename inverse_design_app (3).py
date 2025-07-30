@@ -10,17 +10,18 @@ model = joblib.load("best_model.pkl")
 
 # Define bounds for each input feature (adjust according to your dataset)
 feature_bounds = {
-    'Fly Ash': (200, 500),
-    'GGBS': (50, 300),
-    'NaOH': (10, 50),
-    'Molarity': (8, 16),
-    'Silicate Solution': (100, 250),
-    'Sand': (500, 800),
-    'Coarse Aggregate': (800, 1100),
-    'Water': (100, 250),
-    'Superplasticizer': (0.5, 5),
-    'Curing Temperature': (25, 85)
+    "Fly Ash": (300, 500),
+    "GGBS": (50, 200),
+    "NaOH": (10, 25),
+    "Molarity": (8, 16),
+    "Silicate Solution": (100, 250),
+    "Sand": (600, 800),
+    "Coarse Agg": (900, 1000),
+    "Water": (150, 220),
+    "SP": (0.5, 5.0),
+    "Temperature": (25, 90)
 }
+
 feature_names = list(feature_bounds.keys())
 bounds = list(feature_bounds.values())
 
@@ -47,8 +48,9 @@ def objective_function(x):
 
 if st.button("🔍 Run Inverse Design"):
     with st.spinner("Running inverse optimization..."):
-        result = differential_evolution(objective_function, bounds)
-        best_mix = result.x.reshape(1, -1)
+        result = differential_evolution(objective_function, bounds, seed=42)
+        best_mix = result.x  # This is a 1D array of optimal feature values
+
         predicted = model.predict(best_mix)[0]
 
         print("🎯 Predicted Concrete Properties:")
