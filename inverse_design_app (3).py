@@ -78,15 +78,15 @@ if st.button("🔍 Suggest Mix Design"):
         'Amount': list(mix_dict.values())
     })
 
-# --- 🔹 Bar Chart of Mix Proportions ---
-    st.subheader("📊 Mix Proportions (Bar Chart)")
-    st.bar_chart(mix_df.set_index('Component'))
+# --- 🧱 Display Suggested Mix Proportions as a Table ---
+    st.subheader("🧱 Suggested Mix Proportions")
+    st.table(mix_df)
 
-# --- 🔸 Donut Chart of Mix Composition ---
+# --- 🍩 Donut Chart of Mix Composition ---
     st.subheader("🍩 Mix Composition (Donut Chart)")
 
     fig2, ax2 = plt.subplots()
-    colors = plt.cm.tab20.colors  # more distinct colors
+    colors = plt.cm.tab20.colors  # distinct colors for components
 
     wedges, texts = ax2.pie(
         mix_df['Amount'],
@@ -101,6 +101,7 @@ if st.button("🔍 Suggest Mix Design"):
     fig2.gca().add_artist(centre_circle)
     ax2.axis('equal')  # Equal aspect ratio
     st.pyplot(fig2)
+
 
 
     # Predict target output for best mix
