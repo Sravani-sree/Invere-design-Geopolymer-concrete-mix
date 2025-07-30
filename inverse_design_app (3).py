@@ -42,15 +42,17 @@ if st.button("🔍 Generate Mix Design"):
             x_real = np.array(x).reshape(1, -1)
             y_pred = model.predict(x_real)[0]
 
-    # Scale the outputs to match target_scaled
+    # Scale the predictions to match target scale
             y_pred_scaled = [
-                y_pred[0] / 100,    # CS → 0–1 scale
-                y_pred[1] / 1000,   # SF → 0–1 scale
-                y_pred[2] / 100     # T500 → 0–1 scale
+                y_pred[0] / 100,    # CS
+                y_pred[1] / 1000,   # SF
+                y_pred[2] / 100     # T500
             ]
 
+    # Use the globally defined target_scaled
             loss = np.linalg.norm(np.array(y_pred_scaled) - target_scaled.flatten())
             return loss
+
 
 
         # Differential Evolution optimization
