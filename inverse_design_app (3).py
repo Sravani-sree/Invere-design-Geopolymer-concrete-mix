@@ -70,6 +70,38 @@ if st.button("🔍 Suggest Mix Design"):
 
     st.subheader("📋 Suggested Mix Design Proportions:")
     st.json(mix_dict)
+    import pandas as pd
+
+# --- Create DataFrame for visualization ---
+    mix_df = pd.DataFrame({
+        'Component': list(mix_dict.keys()),
+        'Amount': list(mix_dict.values())
+    })
+
+# --- 🔹 Bar Chart of Mix Proportions ---
+    st.subheader("📊 Mix Proportions (Bar Chart)")
+    st.bar_chart(mix_df.set_index('Component'))
+
+# --- 🔸 Donut Chart of Mix Composition ---
+    st.subheader("🍩 Mix Composition (Donut Chart)")
+
+    fig2, ax2 = plt.subplots()
+    colors = plt.cm.tab20.colors  # more distinct colors
+
+    wedges, texts = ax2.pie(
+        mix_df['Amount'],
+        labels=mix_df['Component'],
+        startangle=90,
+        colors=colors,
+        wedgeprops=dict(width=0.4)
+    )
+
+# Draw center circle
+    centre_circle = plt.Circle((0, 0), 0.70, fc='white')
+    fig2.gca().add_artist(centre_circle)
+    ax2.axis('equal')  # Equal aspect ratio
+    st.pyplot(fig2)
+
 
     # Predict target output for best mix
     pred_scaled = model.predict(np.array(best_mix).reshape(1, -1))[0]
