@@ -76,7 +76,7 @@ if st.button("🔍 Suggest Mix Design"):
     predicted_output = {
         "C Strength": round(pred_scaled[0] * 100, 2),
         "S flow": round(pred_scaled[1] * 1000, 2),
-        "T 500": round(pred_scaled[2] * 100, 2)
+        "T 500": round(pred_scaled[2] * 10, 2)
     }
 
     st.subheader("🎯 Predicted Performance:")
