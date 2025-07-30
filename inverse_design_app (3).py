@@ -9,18 +9,18 @@ from scipy.optimize import differential_evolution
 model = joblib.load("best_model.pkl")
 
 # Define bounds for each input feature (adjust according to your dataset)
-bounds = [
-    (200, 500),   # Fly Ash
-    (50, 300),    # GGBS
-    (10, 50),     # NaOH
-    (8, 16),      # Molarity
-    (100, 250),   # Silicate
-    (500, 800),   # Sand
-    (800, 1100),  # Coarse Aggregate
-    (100, 250),   # Water
-    (0.5, 5),     # SP
-    (25, 85)      # Curing Temp
-]
+feature_bounds = {
+    'Fly Ash': (200, 500),
+    'GGBS': (50, 300),
+    'NaOH': (10, 50),
+    'Molarity': (8, 16),
+    'Silicate Solution': (100, 250),
+    'Sand': (500, 800),
+    'Coarse Aggregate': (800, 1100),
+    'Water': (100, 250),
+    'Superplasticizer': (0.5, 5),
+    'Curing Temperature': (25, 85)
+}
 feature_names = list(feature_bounds.keys())
 bounds = list(feature_bounds.values())
 
