@@ -9,18 +9,18 @@ from scipy.optimize import differential_evolution
 model = joblib.load("best_model.pkl")
 
 # Define bounds for each input feature (adjust according to your dataset)
-feature_bounds = {
-    "Fly Ash": (300, 600),
-    "GGBS": (100, 300),
-    "NaOH": (10, 60),
-    "Molarity": (8, 16),
-    "Sodium Silicate": (100, 250),
-    "Sand": (600, 900),
-    "Coarse Agg": (800, 1100),
-    "Water": (150, 250),
-    "Superplasticizer": (0.5, 3.5),
-    "Curing Temp": (25, 90)
-}
+bounds = [
+    (200, 500),   # Fly Ash
+    (50, 300),    # GGBS
+    (10, 50),     # NaOH
+    (8, 16),      # Molarity
+    (100, 250),   # Silicate
+    (500, 800),   # Sand
+    (800, 1100),  # Coarse Aggregate
+    (100, 250),   # Water
+    (0.5, 5),     # SP
+    (25, 85)      # Curing Temp
+]
 feature_names = list(feature_bounds.keys())
 bounds = list(feature_bounds.values())
 
@@ -35,24 +35,26 @@ target_t500 = st.number_input("🎯 Target T500 Flow Time (s)", min_value=0.5, m
 target_values = np.array([target_cs, target_sf, target_t500])
 
 def objective_function(x):
-    x = np.array(x).reshape(1, -1)
-    prediction = model.predict(x)[0]
-    error = np.mean((prediction - target_values) ** 2)
-    return error
+    x_reshaped = np.array(x).reshape(1, -1)
+    y_pred = model.predict(x_reshaped)[0]
+    loss = np.linalg.norm(y_pred - target_real.flatten())  # target_real is also in real-world units
+    return loss
+
 
 if st.button("🔍 Run Inverse Design"):
     with st.spinner("Running inverse optimization..."):
-        result = differential_evolution(objective_function, bounds, seed=42, maxiter=200, tol=1e-3)
-        best_mix = result.x
-        predicted_props = model.predict([best_mix])[0]
+        result = differential_evolution(objective_function, bounds)
+        best_mix = result.x.reshape(1, -1)
+        predicted = model.predict(best_mix)[0]
 
-        st.success("Mix design successfully generated!")
+        print("🎯 Predicted Concrete Properties:")
+        print(f"Compressive Strength: {predicted[0]:.2f} MPa")
+        print(f"Slump Flow: {predicted[1]:.2f} mm")
+        print(f"T500: {predicted[2]:.2f} sec")
 
-        st.subheader("🎯 Predicted Properties (from optimized mix)")
-        st.json({
-            "C Strength": round(predicted_props[0], 2),
-            "S flow": round(predicted_props[1], 2),
-            "T 500": round(predicted_props[2], 2)
+        print("🧱 Suggested Mix Design:")
+        print(best_mix.flatten())
+
         })
 
         st.subheader("🧱 Suggested Mix Design")
