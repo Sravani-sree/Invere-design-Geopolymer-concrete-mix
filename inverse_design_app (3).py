@@ -39,21 +39,19 @@ if st.button("🔍 Generate Mix Design"):
 
         # Objective function to minimize
         def objective_function(x):
-            x = np.array(x).reshape(1, -1)  # Ensure shape (1, 10)
-            y_pred = model.predict(x)[0]  
-            # Inside your objective function:
+            x_real = np.array(x).reshape(1, -1)
+            y_pred = model.predict(x_real)[0]
 
-
-# Convert prediction to scaled space for loss computation
+    # Scale the outputs to match target_scaled
             y_pred_scaled = [
-            y_pred[0] / 100,     # CS
-            y_pred[1] / 1000,    # SF
-            y_pred[2] / 100      # T500
+                y_pred[0] / 100,    # CS → 0–1 scale
+                y_pred[1] / 1000,   # SF → 0–1 scale
+                y_pred[2] / 100     # T500 → 0–1 scale
             ]
 
             loss = np.linalg.norm(np.array(y_pred_scaled) - target_scaled.flatten())
-# Shape (3,)
             return loss
+
 
         # Differential Evolution optimization
         result = differential_evolution(objective_function, bounds)
