@@ -28,17 +28,21 @@ bounds = list(feature_bounds.values())
 st.title("🧱 Inverse Design of SCGPC Mix")
 st.write("Enter target concrete properties to generate suitable mix design.")
 
-target_cs = st.number_input("🎯 Target Compressive Strength (MPa)", min_value=10.0, max_value=100.0, value=45.0)
-target_sf = st.number_input("🎯 Target Slump Flow (mm)", min_value=400.0, max_value=800.0, value=650.0)
-target_t500 = st.number_input("🎯 Target T500 Flow Time (s)", min_value=0.5, max_value=10.0, value=3.5)
+# Get target values from user input
+target_cs = st.number_input("Target Compressive Strength (MPa)", min_value=0.0, value=45.0)
+target_sf = st.number_input("Target Slump Flow (mm)", min_value=0.0, value=650.0)
+target_t500 = st.number_input("Target T500 Flow Time (s)", min_value=0.0, value=3.5)
 
-target_values = np.array([target_cs, target_sf, target_t500])
+# Prepare target as array
+target_real = np.array([[target_cs, target_sf, target_t500]])
 
+# Define objective function
 def objective_function(x):
-    x_reshaped = np.array(x).reshape(1, -1)
-    y_pred = model.predict(x_reshaped)[0]
-    loss = np.linalg.norm(y_pred - target_real.flatten())  # target_real is also in real-world units
+    x = np.array(x).reshape(1, -1)
+    y_pred = model.predict(x)
+    loss = np.linalg.norm(y_pred - target_real.flatten())
     return loss
+
 
 
 if st.button("🔍 Run Inverse Design"):
