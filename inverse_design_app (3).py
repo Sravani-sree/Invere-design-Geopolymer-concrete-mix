@@ -55,7 +55,6 @@ if st.button("🔍 Run Inverse Design"):
         print("🧱 Suggested Mix Design:")
         print(best_mix.flatten())
 
-        )
 
         st.subheader("🧱 Suggested Mix Design")
         mix_dict = {name: round(val, 2) for name, val in zip(feature_names, best_mix)}
