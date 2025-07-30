@@ -7,79 +7,90 @@ import matplotlib.pyplot as plt
 # Load model
 model = joblib.load("best_model.pkl")
 
-# Define bounds for each input feature (example)
+# Define feature bounds
 feature_bounds = {
-    "Fly Ash": (300, 500),
-    "GGBS": (50, 250),
-    "NaOH": (10, 25),
+    "Fly Ash": (100, 600),
+    "GGBS": (0, 300),
+    "NaOH": (5, 100),
     "Molarity": (8, 16),
-    "Silicate Solution": (150, 250),
-    "Sand": (600, 850),
-    "Coarse Agg": (800, 1100),
-    "Water": (150, 220),
-    "SP": (1, 4),
-    "Temperature": (25, 85)
+    "Silicate Solution": (50, 400),
+    "Sand": (600, 1000),
+    "Coarse Agg": (700, 1200),
+    "Water": (100, 250),
+    "SP": (0, 5),
+    "Temperature": (25, 90)
 }
 
 feature_names = list(feature_bounds.keys())
 bounds = list(feature_bounds.values())
 
-st.title("🧪 Inverse Design of SCGPC Mix using ML + DE")
+st.title("🧱 Inverse Design: SCGPC Mix Prediction")
 
-# Target Inputs
-target_cs = st.number_input("Enter desired Compressive Strength (MPa)", 10.0, 80.0, 50.0)
-target_sf = st.number_input("Enter desired Slump Flow (mm)", 300.0, 800.0, 450.0)
-target_t500 = st.number_input("Enter desired T500 (sec)", 0.5, 10.0, 3.0)
+st.markdown("Enter desired target properties of geopolymer concrete:")
 
-# Scale target
+# Target inputs
+desired_cs = st.number_input("Target Compressive Strength (MPa)", 20.0, 100.0, 50.0)
+desired_sf = st.number_input("Target Slump Flow (mm)", 300.0, 800.0, 450.0)
+desired_t500 = st.number_input("Target T500 Time (s)", 2.0, 30.0, 6.0)
+
+# Scale targets
 target_scaled = np.array([
-    target_cs / 100,
-    target_sf / 1000,
-    target_t500 / 100
+    desired_cs / 100,       # CS scaled
+    desired_sf / 1000,      # SF scaled
+    desired_t500 / 100      # T500 scaled
 ]).reshape(1, -1)
 
-# Objective Function
+# Objective function with T500 penalty
 def objective_function(x):
     x_real = np.array(x).reshape(1, -1)
-    y_pred = model.predict(x_real)[0]  # Already scaled output
-    loss = np.linalg.norm(y_pred - target_scaled.flatten())
+    y_pred = model.predict(x_real)[0]
+
+    # Scale to real-world units
+    y_pred_scaled = [
+        y_pred[0] * 100,
+        y_pred[1] * 1000,
+        y_pred[2] * 100
+    ]
+
+    # Compute loss + penalty for high T500
+    loss = np.linalg.norm(np.array(y_pred_scaled) - [desired_cs, desired_sf, desired_t500])
+    
+    if y_pred_scaled[2] > 10:
+        penalty = (y_pred_scaled[2] - 10) ** 2
+        loss += penalty
+
     return loss
 
-# Run Optimization
-if st.button("🔍 Optimize Mix Design"):
-    with st.spinner("Optimizing... Please wait."):
-        result = differential_evolution(objective_function, bounds, seed=42)
-        best_mix = result.x
-        y_pred_scaled = model.predict(best_mix.reshape(1, -1))[0]
+# Run optimization
+if st.button("🔍 Suggest Mix Design"):
+    result = differential_evolution(objective_function, bounds, seed=42)
+    best_mix = result.x
 
-        # Rescale predictions
-        predicted_outputs = {
-            "C Strength": round(y_pred_scaled[0] * 100, 2),
-            "S flow": round(y_pred_scaled[1] * 1000, 2),
-            "T 500": round(y_pred_scaled[2] * 100, 2)
-        }
+    mix_dict = {name: round(val, 2) for name, val in zip(feature_names, best_mix)}
 
-        # Display Results
-        st.subheader("📋 Suggested Mix Design Proportions:")
-        mix_dict = {name: round(val, 2) for name, val in zip(feature_names, best_mix)}
-        st.json(mix_dict)
+    st.subheader("📋 Suggested Mix Design Proportions:")
+    st.json(mix_dict)
 
-        st.subheader("📈 Predicted Target Properties:")
-        st.write(predicted_outputs)
+    # Predict target output for best mix
+    pred_scaled = model.predict(np.array(best_mix).reshape(1, -1))[0]
+    predicted_output = {
+        "C Strength": round(pred_scaled[0] * 100, 2),
+        "S flow": round(pred_scaled[1] * 1000, 2),
+        "T 500": round(pred_scaled[2] * 100, 2)
+    }
 
-        # Donut Chart
-        fig, ax = plt.subplots()
-        labels = list(predicted_outputs.keys())
-        sizes = list(predicted_outputs.values())
-        colors = ['#4caf50', '#2196f3', '#ff9800']
-        wedges, texts, autotexts = ax.pie(
-            sizes,
-            labels=labels,
-            autopct='%1.1f%%',
-            startangle=90,
-            colors=colors,
-            wedgeprops=dict(width=0.4)
-        )
-        ax.axis('equal')
-        plt.setp(autotexts, size=12, weight="bold")
-        st.pyplot(fig)
+    st.subheader("🎯 Predicted Performance:")
+    st.write(predicted_output)
+
+    # Donut chart visualization
+    fig, ax = plt.subplots()
+    labels = list(predicted_output.keys())
+    values = list(predicted_output.values())
+
+    colors = ['#4CAF50', '#2196F3', '#FF9800']
+    wedges, texts = ax.pie(values, labels=labels, startangle=90, colors=colors, wedgeprops=dict(width=0.3))
+
+    centre_circle = plt.Circle((0, 0), 0.70, fc='white')
+    fig.gca().add_artist(centre_circle)
+    ax.axis('equal')
+    st.pyplot(fig)
