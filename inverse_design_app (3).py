@@ -37,7 +37,7 @@ desired_t500 = st.number_input("Target T500 Time (s)", 2.0, 30.0, 6.0)
 target_scaled = np.array([
     desired_cs / 100,       # CS scaled
     desired_sf / 1000,      # SF scaled
-    desired_t500 / 100      # T500 scaled
+    desired_t500 / 10     # T500 scaled
 ]).reshape(1, -1)
 
 # Objective function with T500 penalty
@@ -49,7 +49,7 @@ def objective_function(x):
     y_pred_scaled = [
         y_pred[0] * 100,
         y_pred[1] * 1000,
-        y_pred[2] * 100
+        y_pred[2] * 10
     ]
 
     # Compute loss + penalty for high T500
