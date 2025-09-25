@@ -24,7 +24,7 @@ feature_bounds = {
 feature_names = list(feature_bounds.keys())
 bounds = list(feature_bounds.values())
 
-st.title("🧱 Inverse Design: SCGPC Mix Prediction")
+st.title("🧱 Inverse Design: SCGC Mix Prediction")
 
 st.markdown("Enter desired target properties of geopolymer concrete:")
 
